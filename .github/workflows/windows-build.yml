@@ -76,7 +76,7 @@ jobs:
           BUILD_TYPE: canary
           DISTRIBUTION: desktop
           SKIP_WEB_BUILD: '1'
-        run: yarn build
+        run: yarn affine @affine/electron build
 
       - name: Configure Yarn for Electron packaging
         shell: pwsh
