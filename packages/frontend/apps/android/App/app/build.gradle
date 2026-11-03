@@ -9,9 +9,15 @@ plugins {
     alias libs.plugins.ksp
     alias libs.plugins.rust.android
     alias libs.plugins.compose
-    alias libs.plugins.google.service
+    alias libs.plugins.google.service apply false
     alias libs.plugins.firebase.crashlytics
     alias libs.plugins.hilt
+}
+
+// Firebase/Google Services configuration is optional for community CI builds.
+// Apply the plugin only when a real google-services.json is provided.
+if (file('google-services.json').exists()) {
+    apply plugin: 'com.google.gms.google-services'
 }
 
 def nativeTarget = System.getenv('AFFINE_ANDROID_NATIVE_TARGET') ?: 'arm64'
