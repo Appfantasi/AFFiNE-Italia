@@ -1,0 +1,109 @@
+name: Build AFFiNE Italia Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - affine-italia/windows-build
+    paths:
+      - '.github/workflows/android-build.yml'
+      - 'packages/**'
+      - 'blocksuite/**'
+      - 'tools/**'
+      - 'mobile-native/**'
+      - 'package.json'
+      - 'yarn.lock'
+      - '.yarnrc.yml'
+      - 'rust-toolchain.toml'
+      - '.nvmrc'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: affine-italia-android-build
+  cancel-in-progress: false
+
+jobs:
+  build-android:
+    name: Build Android APK (arm64)
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    env:
+      BUILD_TYPE: canary
+      PUBLIC_PATH: /
+      AFFINE_ANDROID_NATIVE_TARGET: arm64
+      ANDROID_NDK_HOME: /usr/local/lib/android/sdk/ndk/27.2.12479018
+      ANDROID_NDK_ROOT: /usr/local/lib/android/sdk/ndk/27.2.12479018
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: yarn
+
+      - name: Enable pinned Yarn
+        run: |
+          corepack enable
+          corepack prepare yarn@4.18.0 --activate
+          node --version
+          yarn --version
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK components
+        run: |
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0" "ndk;27.2.12479018"
+          echo "ANDROID_NDK_HOME=$ANDROID_NDK_HOME" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_ROOT=$ANDROID_NDK_ROOT" >> "$GITHUB_ENV"
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@1.97.1
+        with:
+          targets: aarch64-linux-android
+
+      - name: Verify toolchains
+        run: |
+          rustc --version
+          cargo --version
+          java -version
+          test -d "$ANDROID_NDK_HOME"
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Build Android web bundle
+        run: yarn affine @affine/android build
+
+      - name: Generate and sync Android project
+        run: yarn affine @affine/android cap sync
+
+      - name: Build arm64 debug APK
+        working-directory: packages/frontend/apps/android/App
+        env:
+          VERSION_NAME: 0.27.5-canary
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon --stacktrace :app:assembleCanaryDebug
+
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: AFFiNE-Italia-Android-APK-arm64
+          path: packages/frontend/apps/android/App/app/build/outputs/apk/canary/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
