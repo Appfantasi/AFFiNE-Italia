@@ -11,6 +11,7 @@ import {
   exportCustomObjectWorkspace,
   importCustomObjectWorkspace,
   setCustomObjectValue,
+  updateCustomObjectType,
   type CustomObjectWorkspaceData,
 } from './registry.js';
 import type {
@@ -77,6 +78,9 @@ export class CustomObjectManager extends SignalWatcher(
   private readonly typeName$ = signal('');
   private readonly fieldName$ = signal('');
   private readonly fieldType$ = signal<CustomFieldType | 'relation'>('text');
+  private readonly fieldOptions$ = signal('');
+  private readonly relationTargetId$ = signal('');
+  private readonly typeNameEdit$ = signal('');
   private readonly recordTitle$ = signal('');
   private readonly status$ = signal('');
 
@@ -154,13 +158,22 @@ export class CustomObjectManager extends SignalWatcher(
       this.status$.value = 'Crea prima un altro tipo di oggetto da collegare.';
       return;
     }
-    const relationTarget = this.data$.value.types.find(item => item.id !== type.id);
+    const relationTarget = this.data$.value.types.find(item => item.id === this.relationTargetId$.value);
+    const options = this.fieldOptions$.value.split(',').map(item => item.trim()).filter(Boolean);
+    if ((this.fieldType$.value === 'select' || this.fieldType$.value === 'multi-select') && !options.length) {
+      this.status$.value = 'Inserisci almeno un’opzione, separate da virgole.';
+      return;
+    }
+    if (this.fieldType$.value === 'relation' && !relationTarget) {
+      this.status$.value = 'Scegli il tipo di oggetto da collegare.';
+      return;
+    }
     const field: CustomObjectField = {
       id: makeId('field'),
       name,
       type: this.fieldType$.value,
       ...(this.fieldType$.value === 'select' || this.fieldType$.value === 'multi-select'
-        ? { options: ['Da definire'] }
+        ? { options }
         : {}),
       ...(this.fieldType$.value === 'relation' && relationTarget
         ? { relation: { targetTypeId: relationTarget.id, cardinality: 'one' as const } }
@@ -172,6 +185,17 @@ export class CustomObjectManager extends SignalWatcher(
     );
     this.save({ ...this.data$.value, types: result });
     this.fieldName$.value = '';
+    this.fieldOptions$.value = '';
+  };
+
+  private renameType = () => {
+    const type = this.data$.value.types.find(item => item.id === this.selectedTypeId$.value);
+    const name = this.typeNameEdit$.value.trim();
+    if (!type || !name) return;
+    const result = updateCustomObjectType(this.data$.value, { ...type, name, updatedAt: Date.now() });
+    if (!result.ok) { this.status$.value = result.error; return; }
+    this.save(result.value);
+    this.status$.value = 'Nome del tipo aggiornato.';
   };
 
   private createRecord = () => {
@@ -242,6 +266,22 @@ export class CustomObjectManager extends SignalWatcher(
       return html`<input type="checkbox" .checked=${value === true}
         @change=${(event: Event) => this.updateFieldValue(recordId, field.id, (event.currentTarget as HTMLInputElement).checked)}>`;
     }
+    if (field.type === 'select') {
+      return html`<select .value=${typeof value === 'string' ? value : ''}
+        @change=${(event: Event) => this.updateFieldValue(recordId, field.id, (event.currentTarget as HTMLSelectElement).value || null)}>
+        <option value="">Seleziona…</option>
+        ${(field.options ?? []).map(option => html`<option value=${option}>${option}</option>`)}
+      </select>`;
+    }
+    if (field.type === 'multi-select') {
+      const selected = Array.isArray(value) ? value : [];
+      return html`<select multiple .value=${selected.join('|')} @change=${(event: Event) => {
+        const select = event.currentTarget as HTMLSelectElement;
+        this.updateFieldValue(recordId, field.id, Array.from(select.selectedOptions).map(option => option.value));
+      }}>
+        ${(field.options ?? []).map(option => html`<option value=${option} ?selected=${selected.includes(option)}>${option}</option>`)}
+      </select>`;
+    }
     if (field.type === 'relation') {
       const options = this.data$.value.records.filter(
         item => item.typeId === field.relation?.targetTypeId && item.id !== recordId
@@ -282,7 +322,7 @@ export class CustomObjectManager extends SignalWatcher(
               <h3>Tipi di oggetto</h3>
               ${data.types.length ? data.types.map(type => html`
                 <button class="type" aria-pressed=${type.id === this.selectedTypeId$.value}
-                  @click=${() => { this.selectedTypeId$.value = type.id; this.selectedRecordId$.value = ''; }}>
+                  @click=${() => { this.selectedTypeId$.value = type.id; this.selectedRecordId$.value = ''; this.typeNameEdit$.value = type.name; }}>
                   ${type.name} <span class="muted">(${data.records.filter(item => item.typeId === type.id).length})</span>
                 </button>`) : html`<p class="muted">Non hai ancora creato tipi.</p>`}
               <div class="form">
@@ -298,6 +338,11 @@ export class CustomObjectManager extends SignalWatcher(
             <div class="section">
               ${selectedType ? html`
                 <h3>Proprietà di: ${selectedType.name}</h3>
+                <div class="form">
+                  <input aria-label="Rinomina tipo" placeholder="Nome del tipo" .value=${this.typeNameEdit$.value || selectedType.name}
+                    @input=${(event: Event) => (this.typeNameEdit$.value = (event.currentTarget as HTMLInputElement).value)}>
+                  <button @click=${this.renameType}>Rinomina</button>
+                </div>
                 ${selectedType.fields.length ? selectedType.fields.map(field => html`
                   <div class="row"><span>${field.name}</span><span class="muted">${field.type}</span></div>`) : html`<p class="muted">Aggiungi la prima proprietà.</p>`}
                 <div class="form">
@@ -307,6 +352,12 @@ export class CustomObjectManager extends SignalWatcher(
                     @change=${(event: Event) => (this.fieldType$.value = (event.currentTarget as HTMLSelectElement).value as CustomFieldType)}>
                     ${FIELD_TYPES.map(type => html`<option value=${type}>${type}</option>`)}
                   </select>
+                  ${this.fieldType$.value === 'select' || this.fieldType$.value === 'multi-select' ? html`<input placeholder="Opzioni separate da virgole" .value=${this.fieldOptions$.value}
+                    @input=${(event: Event) => (this.fieldOptions$.value = (event.currentTarget as HTMLInputElement).value)}>` : nothing}
+                  ${this.fieldType$.value === 'relation' ? html`<select .value=${this.relationTargetId$.value} @change=${(event: Event) => (this.relationTargetId$.value = (event.currentTarget as HTMLSelectElement).value)}>
+                    <option value="">Tipo da collegare…</option>
+                    ${data.types.filter(item => item.id !== selectedType.id).map(item => html`<option value=${item.id}>${item.name}</option>`)}
+                  </select>` : nothing}
                   <button @click=${this.addField}>Aggiungi</button>
                 </div>
                 <h3>Oggetti di questo tipo</h3>
