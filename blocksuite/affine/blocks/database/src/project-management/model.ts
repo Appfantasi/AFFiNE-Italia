@@ -99,7 +99,11 @@ export function validateTask(task: WorkspaceTask): ProjectIssue[] {
   } else if (task.startDate && task.dueDate && task.dueDate < task.startDate) {
     issues.push({ code: 'due-before-start', message: 'La scadenza non può precedere la data iniziale.' });
   }
-  if (task.dependsOnTaskIds.includes(task.id)) {
+  if (!Array.isArray(task.documentIds) || !task.documentIds.every(id => typeof id === 'string') ||
+      !Array.isArray(task.objectRecordIds) || !task.objectRecordIds.every(id => typeof id === 'string') ||
+      !Array.isArray(task.dependsOnTaskIds) || !task.dependsOnTaskIds.every(id => typeof id === 'string')) {
+    issues.push({ code: 'invalid-status', message: 'I collegamenti dell’attività non sono validi.' });
+  } else if (task.dependsOnTaskIds.includes(task.id)) {
     issues.push({ code: 'self-dependency', message: 'Un’attività non può dipendere da sé stessa.' });
   }
   return issues;
