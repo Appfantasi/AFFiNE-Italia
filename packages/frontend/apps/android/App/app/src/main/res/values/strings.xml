@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">AFFiNE</string>
-    <string name="title_activity_main">AFFiNE</string>
-    <string name="package_name">app.affine.pro</string>
-    <string name="custom_url_scheme">app.affine.pro</string>
+    <string name="app_name">AFFiNE Italia</string>
+    <string name="title_activity_main">AFFiNE Italia</string>
+    <string name="package_name">it.appfantasi.affineitalia</string>
+    <string name="custom_url_scheme">it.appfantasi.affineitalia</string>
 </resources>
