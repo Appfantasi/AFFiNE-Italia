@@ -227,6 +227,29 @@ export function importCustomObjectWorkspace(
     ) {
       return { ok: false, error: 'Il backup contiene oggetti duplicati o con tipo inesistente.' };
     }
+    if (!record.id.trim() || typeof record.title !== 'string' || !record.title.trim()) {
+      return { ok: false, error: 'Il backup contiene un oggetto senza identificativo o titolo.' };
+    }
+    const type = data.types.find(item => item.id === record.typeId)!;
+    const fields = new Map(type.fields.map(field => [field.id, field]));
+    for (const [fieldId, value] of Object.entries(record.values ?? {})) {
+      const field = fields.get(fieldId);
+      if (!field || !isCustomObjectValueValid(field, value)) {
+        return { ok: false, error: `Il backup contiene un valore non valido per "${fieldId}".` };
+      }
+      if (field.type === 'relation' && value !== null) {
+        const ids = Array.isArray(value) ? value : [value];
+        const targets = ids.map(id => data.records.find(item => item.id === id));
+        if (targets.some(target => !target || target.typeId !== field.relation?.targetTypeId)) {
+          return { ok: false, error: `Il backup contiene una relazione non valida per "${field.name}".` };
+        }
+      }
+    }
+    for (const field of type.fields) {
+      if (field.required && !(field.id in (record.values ?? {}))) {
+        return { ok: false, error: `Il backup non contiene la proprietà obbligatoria "${field.name}".` };
+      }
+    }
     recordIds.add(record.id);
   }
   return { ok: true, value: data };
