@@ -207,8 +207,9 @@ export class ProjectManager extends SignalWatcher(WithDisposable(ShadowlessEleme
             ${this.view$.value === 'kanban' ? html`
               <div class="board">
                 ${STATUSES.map(status => {
-                  const key = status.value === 'in-progress' ? 'inProgress' : status.value;
-                  const tasks = board?.[key as keyof typeof board] ?? [];
+                  const tasks = !board ? [] : status.value === 'todo' ? board.todo
+                    : status.value === 'in-progress' ? board.inProgress
+                    : status.value === 'blocked' ? board.blocked : board.done;
                   return html`<section class="column"><h3>${status.label} (${tasks.length})</h3>${tasks.map(task => this.renderTask(task))}</section>`;
                 })}
               </div>` : html`
