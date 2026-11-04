@@ -20,7 +20,7 @@ import type {
 } from '../../custom-objects/model.js';
 
 const STORAGE_PREFIX = 'affine-italia-custom-objects-v1:';
-const FIELD_TYPES: CustomFieldType[] = [
+const FIELD_TYPES: Array<CustomFieldType | 'relation'> = [
   'text',
   'number',
   'date',
@@ -31,6 +31,7 @@ const FIELD_TYPES: CustomFieldType[] = [
   'email',
   'file',
   'image',
+  'relation',
 ];
 
 function makeId(prefix: string) {
@@ -75,7 +76,7 @@ export class CustomObjectManager extends SignalWatcher(
   private readonly selectedRecordId$ = signal('');
   private readonly typeName$ = signal('');
   private readonly fieldName$ = signal('');
-  private readonly fieldType$ = signal<CustomFieldType>('text');
+  private readonly fieldType$ = signal<CustomFieldType | 'relation'>('text');
   private readonly recordTitle$ = signal('');
   private readonly status$ = signal('');
 
@@ -149,12 +150,20 @@ export class CustomObjectManager extends SignalWatcher(
       this.status$.value = 'Seleziona un tipo e inserisci il nome della proprietà.';
       return;
     }
+    if (this.fieldType$.value === 'relation' && !this.data$.value.types.some(item => item.id !== type.id)) {
+      this.status$.value = 'Crea prima un altro tipo di oggetto da collegare.';
+      return;
+    }
+    const relationTarget = this.data$.value.types.find(item => item.id !== type.id);
     const field: CustomObjectField = {
       id: makeId('field'),
       name,
       type: this.fieldType$.value,
       ...(this.fieldType$.value === 'select' || this.fieldType$.value === 'multi-select'
         ? { options: ['Da definire'] }
+        : {}),
+      ...(this.fieldType$.value === 'relation' && relationTarget
+        ? { relation: { targetTypeId: relationTarget.id, cardinality: 'one' as const } }
         : {}),
     };
     const updated = { ...type, fields: [...type.fields, field], updatedAt: Date.now() };
