@@ -195,7 +195,7 @@ export class CustomObjectManager extends SignalWatcher(
     this.recordTitle$.value = '';
   };
 
-  private updateFieldValue(recordId: string, fieldId: string, value: string | number | boolean) {
+  private updateFieldValue(recordId: string, fieldId: string, value: string | number | boolean | null) {
     const result = setCustomObjectValue(
       this.data$.value,
       recordId,
