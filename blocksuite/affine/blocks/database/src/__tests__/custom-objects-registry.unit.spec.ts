@@ -9,6 +9,7 @@ import {
   removeCustomObjectRecord,
   removeCustomObjectType,
   setCustomObjectValue,
+  updateCustomObjectType,
 } from '../custom-objects/registry.js';
 import type { CustomObjectType } from '../custom-objects/model.js';
 
