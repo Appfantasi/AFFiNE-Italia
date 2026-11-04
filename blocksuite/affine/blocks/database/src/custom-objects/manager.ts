@@ -3,6 +3,7 @@ import { ShadowlessElement } from '@blocksuite/std';
 import { signal } from '@preact/signals-core';
 import { css, html, nothing } from 'lit';
 import { property } from 'lit/decorators.js';
+import type * as Y from 'yjs';
 
 import {
   addCustomObjectRecord,
@@ -69,6 +70,12 @@ export class CustomObjectManager extends SignalWatcher(
   @property({ attribute: false })
   accessor workspaceId = 'default';
 
+  @property({ attribute: false })
+  accessor workspaceDoc: Y.Doc | undefined = undefined;
+
+  private observedMap?: Y.Map<string>;
+  private readonly onWorkspaceDataChanged = () => this.loadFromWorkspace();
+
   private readonly open$ = signal(false);
   private readonly data$ = signal<CustomObjectWorkspaceData>(
     createEmptyCustomObjectWorkspace()
@@ -87,6 +94,29 @@ export class CustomObjectManager extends SignalWatcher(
   override connectedCallback() {
     super.connectedCallback();
     this.load();
+    this.observeWorkspace();
+  }
+
+  override disconnectedCallback() {
+    this.observedMap?.unobserve(this.onWorkspaceDataChanged);
+    this.observedMap = undefined;
+    super.disconnectedCallback();
+  }
+
+  private observeWorkspace() {
+    const map = this.workspaceDoc?.getMap<string>('affine:italia:custom-objects');
+    if (!map || map === this.observedMap) return;
+    this.observedMap?.unobserve(this.onWorkspaceDataChanged);
+    this.observedMap = map;
+    map.observe(this.onWorkspaceDataChanged);
+  }
+
+  private loadFromWorkspace() {
+    const saved = this.observedMap?.get(this.workspaceId);
+    if (!saved) return;
+    const result = importCustomObjectWorkspace(saved);
+    if (result.ok) this.data$.value = result.value;
+    else this.status$.value = result.error;
   }
 
   private get storageKey() {
@@ -95,29 +125,50 @@ export class CustomObjectManager extends SignalWatcher(
 
   private load() {
     try {
-      const saved = localStorage.getItem(this.storageKey);
-      if (!saved) {
-        this.data$.value = createEmptyCustomObjectWorkspace();
+      this.observeWorkspace();
+      const shared = this.workspaceDoc?.getMap<string>('affine:italia:custom-objects').get(this.workspaceId);
+      if (shared) {
+        const result = importCustomObjectWorkspace(shared);
+        if (result.ok) this.data$.value = result.value;
+        else this.status$.value = result.error;
         return;
       }
-      const result = importCustomObjectWorkspace(saved);
-      if (result.ok) {
-        this.data$.value = result.value;
-      } else {
+      // Migra automaticamente i dati creati dalle versioni precedenti.
+      const local = localStorage.getItem(this.storageKey);
+      if (local) {
+        const result = importCustomObjectWorkspace(local);
+        if (result.ok) {
+          this.data$.value = result.value;
+          if (this.workspaceDoc) this.workspaceDoc.transact(() => {
+            this.workspaceDoc!.getMap<string>('affine:italia:custom-objects').set(this.workspaceId, exportCustomObjectWorkspace(result.value));
+          });
+          return;
+        }
         this.status$.value = result.error;
+        return;
       }
+      this.data$.value = createEmptyCustomObjectWorkspace();
     } catch {
-      this.status$.value = 'Impossibile leggere i dati locali degli oggetti.';
+      this.status$.value = 'Impossibile leggere i dati degli oggetti.';
     }
   }
 
   private save(data: CustomObjectWorkspaceData) {
     try {
-      localStorage.setItem(this.storageKey, exportCustomObjectWorkspace(data));
-      this.data$.value = data;
-      this.status$.value = 'Modifiche salvate su questo dispositivo.';
+      const serialized = exportCustomObjectWorkspace(data);
+      if (this.workspaceDoc) {
+        this.workspaceDoc.transact(() => {
+          this.workspaceDoc!.getMap<string>('affine:italia:custom-objects').set(this.workspaceId, serialized);
+        });
+        this.data$.value = data;
+        this.status$.value = 'Modifiche salvate nel workspace AFFiNE.';
+      } else {
+        localStorage.setItem(this.storageKey, serialized);
+        this.data$.value = data;
+        this.status$.value = 'Modifiche salvate localmente: workspace non disponibile.';
+      }
     } catch {
-      this.status$.value = 'Salvataggio non riuscito: spazio locale non disponibile.';
+      this.status$.value = 'Salvataggio non riuscito.';
     }
   }
 
@@ -316,7 +367,7 @@ export class CustomObjectManager extends SignalWatcher(
             <div><strong>Oggetti personalizzati</strong><p>Tipi, proprietà e collegamenti</p></div>
             <button @click=${() => (this.open$.value = false)} aria-label="Chiudi">✕</button>
           </div>
-          <div class="notice">I dati di questa prima versione sono salvati localmente su questo dispositivo e non sono ancora sincronizzati con gli altri dispositivi.</div>
+          <div class="notice">I dati sono conservati nel documento condiviso del workspace AFFiNE. Se il workspace non è disponibile, viene usato il salvataggio locale.</div>
           <div class="columns">
             <div class="section">
               <h3>Tipi di oggetto</h3>
