@@ -70,6 +70,25 @@ describe('custom object registry', () => {
     expect(removeCustomObjectRecord(pRecord.value, 'p1').ok).toBe(true);
   });
 
+  test('rejects backups containing invalid field values or broken relations', () => {
+    const data = {
+      version: 1 as const,
+      types: [
+        { ...person, fields: [{ id: 'email', name: 'Email', type: 'email' as const, required: true }] },
+        book,
+      ],
+      records: [
+        { id: 'p1', typeId: 'person', title: 'Ada', values: { email: 42 }, createdAt: 1, updatedAt: 1 },
+      ],
+    };
+    expect(importCustomObjectWorkspace(JSON.stringify(data)).ok).toBe(false);
+    const missingRequired = {
+      ...data,
+      records: [{ id: 'p1', typeId: 'person', title: 'Ada', values: {}, createdAt: 1, updatedAt: 1 }],
+    };
+    expect(importCustomObjectWorkspace(JSON.stringify(missingRequired)).ok).toBe(false);
+  });
+
   test('exports and imports a workspace backup', () => {
     const data = createEmptyCustomObjectWorkspace();
     const result = importCustomObjectWorkspace(exportCustomObjectWorkspace(data));
