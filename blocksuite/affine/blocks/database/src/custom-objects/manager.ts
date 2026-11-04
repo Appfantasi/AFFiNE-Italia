@@ -73,6 +73,9 @@ export class CustomObjectManager extends SignalWatcher(
   @property({ attribute: false })
   accessor workspaceDoc: Y.Doc | undefined = undefined;
 
+  @property({ attribute: false })
+  accessor legacyStorageKey = '';
+
   private observedMap?: Y.Map<string>;
   private readonly onWorkspaceDataChanged = () => this.loadFromWorkspace();
 
@@ -134,7 +137,7 @@ export class CustomObjectManager extends SignalWatcher(
         return;
       }
       // Migra automaticamente i dati creati dalle versioni precedenti.
-      const local = localStorage.getItem(this.storageKey);
+      const local = localStorage.getItem(this.storageKey) ?? (this.legacyStorageKey ? localStorage.getItem(this.legacyStorageKey) : null);
       if (local) {
         const result = importCustomObjectWorkspace(local);
         if (result.ok) {
