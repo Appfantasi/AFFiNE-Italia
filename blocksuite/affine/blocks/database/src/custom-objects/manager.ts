@@ -247,7 +247,7 @@ export class CustomObjectManager extends SignalWatcher(
         item => item.typeId === field.relation?.targetTypeId && item.id !== recordId
       );
       return html`<select .value=${typeof value === 'string' ? value : ''}
-        @change=${(event: Event) => this.updateFieldValue(recordId, field.id, (event.currentTarget as HTMLSelectElement).value)}>
+        @change=${(event: Event) => this.updateFieldValue(recordId, field.id, (event.currentTarget as HTMLSelectElement).value || null)}>
         <option value="">Nessun collegamento</option>
         ${options.map(item => html`<option value=${item.id}>${item.title}</option>`)}
       </select>`;
