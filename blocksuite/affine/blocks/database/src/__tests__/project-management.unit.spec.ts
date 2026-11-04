@@ -43,6 +43,18 @@ describe('workspace project management', () => {
     expect(updateTask(both.value, { ...task, dependsOnTaskIds: ['t2'] }).ok).toBe(false);
   });
 
+  test('rejects calendar dates that do not exist', () => {
+    const invalid = { ...project, dueDate: '2026-02-30' };
+    expect(addProject(createEmptyProjectWorkspace(), invalid).ok).toBe(false);
+  });
+
+  test('rejects tasks with missing or invalid link collections', () => {
+    const p = addProject(createEmptyProjectWorkspace(), project);
+    if (!p.ok) throw new Error(p.error);
+    const invalid = { ...task, documentIds: null as unknown as string[] };
+    expect(addTask(p.value, invalid).ok).toBe(false);
+  });
+
   test('exports and imports project workspace data', () => {
     const p = addProject(createEmptyProjectWorkspace(), project);
     if (!p.ok) throw new Error(p.error);
