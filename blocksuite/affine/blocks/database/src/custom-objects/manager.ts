@@ -92,6 +92,7 @@ export class CustomObjectManager extends SignalWatcher(
   private readonly fieldType$ = signal<CustomFieldType | 'relation'>('text');
   private readonly fieldOptions$ = signal('');
   private readonly relationTargetId$ = signal('');
+  private readonly relationCardinality$ = signal<'one' | 'many'>('one');
   private readonly typeNameEdit$ = signal('');
   private readonly recordTitle$ = signal('');
   private readonly status$ = signal('');
@@ -232,7 +233,7 @@ export class CustomObjectManager extends SignalWatcher(
         ? { options }
         : {}),
       ...(this.fieldType$.value === 'relation' && relationTarget
-        ? { relation: { targetTypeId: relationTarget.id, cardinality: 'one' as const } }
+        ? { relation: { targetTypeId: relationTarget.id, cardinality: this.relationCardinality$.value } }
         : {}),
     };
     const updated = { ...type, fields: [...type.fields, field], updatedAt: Date.now() };
@@ -461,10 +462,15 @@ export class CustomObjectManager extends SignalWatcher(
                   </select>
                   ${this.fieldType$.value === 'select' || this.fieldType$.value === 'multi-select' ? html`<input placeholder="Opzioni separate da virgole" .value=${this.fieldOptions$.value}
                     @input=${(event: Event) => (this.fieldOptions$.value = (event.currentTarget as HTMLInputElement).value)}>` : nothing}
-                  ${this.fieldType$.value === 'relation' ? html`<select .value=${this.relationTargetId$.value} @change=${(event: Event) => (this.relationTargetId$.value = (event.currentTarget as HTMLSelectElement).value)}>
-                    <option value="">Tipo da collegare…</option>
-                    ${data.types.filter(item => item.id !== selectedType.id).map(item => html`<option value=${item.id}>${item.name}</option>`)}
-                  </select>` : nothing}
+                  ${this.fieldType$.value === 'relation' ? html`
+                    <select aria-label="Tipo collegato" .value=${this.relationTargetId$.value} @change=${(event: Event) => (this.relationTargetId$.value = (event.currentTarget as HTMLSelectElement).value)}>
+                      <option value="">Tipo da collegare…</option>
+                      ${data.types.filter(item => item.id !== selectedType.id).map(item => html`<option value=${item.id}>${item.name}</option>`)}
+                    </select>
+                    <select aria-label="Numero collegamenti" .value=${this.relationCardinality$.value} @change=${(event: Event) => (this.relationCardinality$.value = (event.currentTarget as HTMLSelectElement).value as 'one' | 'many')}>
+                      <option value="one">Un solo oggetto</option>
+                      <option value="many">Più oggetti</option>
+                    </select>` : nothing}
                   <button @click=${this.addField}>Aggiungi</button>
                 </div>
                 <h3>Oggetti di questo tipo</h3>
