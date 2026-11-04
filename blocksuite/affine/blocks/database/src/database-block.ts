@@ -210,7 +210,7 @@ export class DatabaseBlockComponent extends CaptionedBlockComponent<DatabaseBloc
       return html`
         <div class="${databaseHeaderContainerStyles}">
           <div class="${databaseTitleRowStyles}">
-            ${this.renderTitle(props.dataViewLogic)} ${this.renderDatabaseOps()}
+            ${this.renderTitle(props.dataViewLogic)} <affine-custom-object-manager .workspaceId=${this.model.store.id}></affine-custom-object-manager> ${this.renderDatabaseOps()}
           </div>
           <div class="${databaseToolbarRowStyles} ${databaseHeaderBarStyles}">
             <div class="${databaseViewBarContainerStyles}">
