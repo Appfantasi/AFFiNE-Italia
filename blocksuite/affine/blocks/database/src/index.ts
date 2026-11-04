@@ -20,3 +20,7 @@ export * from './custom-objects/registry.js';
 export * from './project-management/model.js';
 export * from './project-management/registry.js';
 export * from './project-management/manager.js';
+
+export * from './document-archive/model.js';
+export * from './document-archive/registry.js';
+export * from './document-archive/manager.js';
