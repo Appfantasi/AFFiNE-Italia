@@ -1,6 +1,7 @@
 import { CenterPeek } from './components/layout';
 import { DatabaseTitle } from './components/title';
 import { CustomObjectManager } from './custom-objects/manager';
+import { ProjectManager } from './project-management/manager';
 import { DatabaseBlockComponent } from './database-block';
 import { DatabaseDndPreviewBlockComponent } from './database-dnd-preview-block';
 import { BlockRenderer } from './detail-panel/block-renderer';
@@ -14,6 +15,7 @@ import { HeaderAreaTextCell } from './properties/title/text';
 export function effects() {
   customElements.define('affine-database-title', DatabaseTitle);
   customElements.define('affine-custom-object-manager', CustomObjectManager);
+  customElements.define('affine-project-manager', ProjectManager);
   customElements.define('data-view-header-area-icon', IconCell);
   customElements.define('affine-database-link-cell', LinkCell);
   customElements.define('data-view-header-area-text', HeaderAreaTextCell);
