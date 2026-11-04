@@ -12,3 +12,5 @@ export * from './selection.js';
 export * from './service';
 export * from './utils/block-utils';
 export * from '@blocksuite/data-view';
+
+export * from './custom-objects/model.js';
