@@ -12,6 +12,8 @@ import {
   exportCustomObjectWorkspace,
   importCustomObjectWorkspace,
   setCustomObjectValue,
+  removeCustomObjectRecord,
+  removeCustomObjectType,
   updateCustomObjectType,
   type CustomObjectWorkspaceData,
 } from './registry.js';
@@ -273,7 +275,7 @@ export class CustomObjectManager extends SignalWatcher(
     this.recordTitle$.value = '';
   };
 
-  private updateFieldValue(recordId: string, fieldId: string, value: string | number | boolean | null) {
+  private updateFieldValue(recordId: string, fieldId: string, value: CustomObjectValue) {
     const result = setCustomObjectValue(
       this.data$.value,
       recordId,
@@ -286,6 +288,48 @@ export class CustomObjectManager extends SignalWatcher(
     }
     this.save(result.value);
   }
+
+  private deleteSelectedRecord = () => {
+    const recordId = this.selectedRecordId$.value;
+    if (!recordId) return;
+    const result = removeCustomObjectRecord(this.data$.value, recordId);
+    if (!result.ok) {
+      this.status$.value = result.error;
+      return;
+    }
+    this.save(result.value);
+    this.selectedRecordId$.value = '';
+    this.status$.value = 'Oggetto eliminato.';
+  };
+
+  private deleteSelectedType = () => {
+    const typeId = this.selectedTypeId$.value;
+    if (!typeId) return;
+    const result = removeCustomObjectType(this.data$.value, typeId);
+    if (!result.ok) {
+      this.status$.value = result.error;
+      return;
+    }
+    this.save(result.value);
+    this.selectedTypeId$.value = '';
+    this.selectedRecordId$.value = '';
+    this.status$.value = 'Tipo eliminato.';
+  };
+
+  private renameRecord = (recordId: string, title: string) => {
+    const normalizedTitle = title.trim();
+    if (!normalizedTitle) {
+      this.status$.value = 'Il titolo non può essere vuoto.';
+      return;
+    }
+    const records = this.data$.value.records.map(record =>
+      record.id === recordId
+        ? { ...record, title: normalizedTitle, updatedAt: Date.now() }
+        : record
+    );
+    this.save({ ...this.data$.value, records });
+    this.status$.value = 'Titolo aggiornato.';
+  };
 
   private exportBackup = () => {
     const blob = new Blob([exportCustomObjectWorkspace(this.data$.value)], {
@@ -340,6 +384,15 @@ export class CustomObjectManager extends SignalWatcher(
       const options = this.data$.value.records.filter(
         item => item.typeId === field.relation?.targetTypeId && item.id !== recordId
       );
+      if (field.relation?.cardinality === 'many') {
+        const selected = Array.isArray(value) ? value : [];
+        return html`<select multiple .value=${selected.join('|')} @change=${(event: Event) => {
+          const select = event.currentTarget as HTMLSelectElement;
+          this.updateFieldValue(recordId, field.id, Array.from(select.selectedOptions).map(option => option.value));
+        }}>
+          ${options.map(item => html`<option value=${item.id} ?selected=${selected.includes(item.id)}>${item.title}</option>`)}
+        </select>`;
+      }
       return html`<select .value=${typeof value === 'string' ? value : ''}
         @change=${(event: Event) => this.updateFieldValue(recordId, field.id, (event.currentTarget as HTMLSelectElement).value || null)}>
         <option value="">Nessun collegamento</option>
@@ -426,10 +479,16 @@ export class CustomObjectManager extends SignalWatcher(
                   <button class="primary" @click=${this.createRecord}>Crea oggetto</button>
                 </div>
                 ${selectedRecord && selectedRecord.typeId === selectedType.id ? html`
-                  <h3>Modifica: ${selectedRecord.title}</h3>
+                  <h3>Modifica oggetto</h3>
+                  <div class="form">
+                    <input aria-label="Titolo oggetto" .value=${selectedRecord.title}
+                      @change=${(event: Event) => this.renameRecord(selectedRecord.id, (event.currentTarget as HTMLInputElement).value)}>
+                    <button @click=${this.deleteSelectedRecord}>Elimina oggetto</button>
+                  </div>
                   ${selectedType.fields.map(field => html`
                     <div class="field"><label>${field.name}</label>${this.renderFieldEditor(field, selectedRecord.id)}</div>`)}
                 ` : nothing}
+                <div class="actions"><button @click=${this.deleteSelectedType}>Elimina tipo</button></div>
               ` : html`<p class="muted">Crea o seleziona un tipo per gestire proprietà e oggetti.</p>`}
             </div>
           </div>
