@@ -62,6 +62,10 @@ export class ProjectManager extends SignalWatcher(WithDisposable(ShadowlessEleme
   private readonly projectName$ = signal('');
   private readonly taskTitle$ = signal('');
   private readonly taskDueDate$ = signal('');
+  private readonly taskDescription$ = signal('');
+  private readonly taskDocumentIds$ = signal('');
+  private readonly taskObjectIds$ = signal('');
+  private readonly taskDependencies$ = signal<string[]>([]);
   private readonly taskPriority$ = signal<TaskPriority>('normal');
   private readonly view$ = signal<'kanban' | 'calendar'>('kanban');
   private readonly status$ = signal('');
@@ -142,13 +146,20 @@ export class ProjectManager extends SignalWatcher(WithDisposable(ShadowlessEleme
       id: makeId('task'), projectId: this.projectId$.value, title,
       status: 'todo', priority: this.taskPriority$.value,
       ...(this.taskDueDate$.value ? { dueDate: this.taskDueDate$.value } : {}),
-      documentIds: [], objectRecordIds: [], dependsOnTaskIds: [],
+      ...(this.taskDescription$.value.trim() ? { description: this.taskDescription$.value.trim() } : {}),
+      documentIds: this.taskDocumentIds$.value.split(',').map(id => id.trim()).filter(Boolean),
+      objectRecordIds: this.taskObjectIds$.value.split(',').map(id => id.trim()).filter(Boolean),
+      dependsOnTaskIds: this.taskDependencies$.value.filter(id => id !== ''),
       createdAt: now, updatedAt: now,
     });
     if (!result.ok) { this.status$.value = result.error; return; }
     this.save(result.value);
     this.taskTitle$.value = '';
     this.taskDueDate$.value = '';
+    this.taskDescription$.value = '';
+    this.taskDocumentIds$.value = '';
+    this.taskObjectIds$.value = '';
+    this.taskDependencies$.value = [];
     this.taskPriority$.value = 'normal';
   };
 
@@ -161,8 +172,12 @@ export class ProjectManager extends SignalWatcher(WithDisposable(ShadowlessEleme
   private renderTask(task: ProjectWorkspaceData['tasks'][number]) {
     return html`<article class="task">
       <strong>${task.title}</strong>
+      ${task.description ? html`<div class="meta">${task.description}</div>` : nothing}
       <div class="meta">Priorità: ${({ low: 'Bassa', normal: 'Normale', high: 'Alta', urgent: 'Urgente' } as const)[task.priority]}
-        ${task.dueDate ? html` · Scadenza: ${task.dueDate}` : nothing}</div>
+        ${task.dueDate ? html` · Scadenza: ${task.dueDate}` : nothing}
+        ${task.documentIds.length ? html` · Documenti: ${task.documentIds.length}` : nothing}
+        ${task.objectRecordIds.length ? html` · Oggetti: ${task.objectRecordIds.length}` : nothing}
+        ${task.dependsOnTaskIds.length ? html` · Dipendenze: ${task.dependsOnTaskIds.length}` : nothing}</div>
       <select aria-label="Stato attività" .value=${task.status}
         @change=${(event: Event) => this.changeStatus(task.id, (event.currentTarget as HTMLSelectElement).value as TaskStatus)}>
         ${STATUSES.map(status => html`<option value=${status.value}>${status.label}</option>`)}
@@ -198,6 +213,16 @@ export class ProjectManager extends SignalWatcher(WithDisposable(ShadowlessEleme
                 @input=${(event: Event) => (this.taskTitle$.value = (event.currentTarget as HTMLInputElement).value)}>
               <input type="date" aria-label="Scadenza" .value=${this.taskDueDate$.value}
                 @input=${(event: Event) => (this.taskDueDate$.value = (event.currentTarget as HTMLInputElement).value)}>
+              <input placeholder="Descrizione attività" aria-label="Descrizione attività" .value=${this.taskDescription$.value}
+                @input=${(event: Event) => (this.taskDescription$.value = (event.currentTarget as HTMLInputElement).value)}>
+              <input placeholder="ID documenti collegati (separati da virgola)" aria-label="ID documenti" .value=${this.taskDocumentIds$.value}
+                @input=${(event: Event) => (this.taskDocumentIds$.value = (event.currentTarget as HTMLInputElement).value)}>
+              <input placeholder="ID oggetti collegati (separati da virgola)" aria-label="ID oggetti" .value=${this.taskObjectIds$.value}
+                @input=${(event: Event) => (this.taskObjectIds$.value = (event.currentTarget as HTMLInputElement).value)}>
+              <select aria-label="Attività precedenti" multiple .value=${this.taskDependencies$.value.join('|')}
+                @change=${(event: Event) => (this.taskDependencies$.value = Array.from((event.currentTarget as HTMLSelectElement).selectedOptions).map(option => option.value))}>
+                ${data.tasks.filter(task => task.projectId === project.id).map(task => html`<option value=${task.id}>${task.title}</option>`)}
+              </select>
               <select aria-label="Priorità" .value=${this.taskPriority$.value}
                 @change=${(event: Event) => (this.taskPriority$.value = (event.currentTarget as HTMLSelectElement).value as TaskPriority)}>
                 <option value="low">Bassa</option><option value="normal">Normale</option><option value="high">Alta</option><option value="urgent">Urgente</option>
