@@ -12,12 +12,12 @@ import {
   importCustomObjectWorkspace,
   setCustomObjectValue,
   type CustomObjectWorkspaceData,
-} from '../../custom-objects/registry.js';
+} from './registry.js';
 import type {
   CustomFieldType,
   CustomObjectField,
   CustomObjectType,
-} from '../../custom-objects/model.js';
+} from './model.js';
 
 const STORAGE_PREFIX = 'affine-italia-custom-objects-v1:';
 const FIELD_TYPES: Array<CustomFieldType | 'relation'> = [
