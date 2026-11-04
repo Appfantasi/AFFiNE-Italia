@@ -12,6 +12,7 @@ import androidx.webkit.WebViewStartupException
 import app.affine.pro.utils.logger.AffineDebugTree
 import app.affine.pro.utils.logger.CrashlyticsTree
 import app.affine.pro.utils.logger.FileTree
+import com.google.firebase.FirebaseApp
 import com.google.firebase.crashlytics.ktx.crashlytics
 import com.google.firebase.crashlytics.setCustomKeys
 import com.google.firebase.ktx.Firebase
@@ -26,18 +27,29 @@ class AFFiNEApp : Application() {
         super.onCreate()
         startWebView()
         _context = applicationContext
+        // Firebase is optional in community builds. Without google-services.json
+        // FirebaseApp has no default instance and accessing Crashlytics would crash startup.
+        val firebaseConfigured = FirebaseApp.getApps(this).isNotEmpty()
+
         // init logger
         if (BuildConfig.DEBUG) {
             Timber.plant(AffineDebugTree())
         } else {
-            Timber.plant(CrashlyticsTree(), FileTree(applicationContext))
+            if (firebaseConfigured) {
+                Timber.plant(CrashlyticsTree())
+            }
+            Timber.plant(FileTree(applicationContext))
         }
         Timber.i("Application started.")
+
         // init capacitor config
         CapacitorConfig.init(baseContext)
-        // init crashlytics
-        Firebase.crashlytics.setCustomKeys {
-            key("affine_version", CapacitorConfig.getAffineVersion())
+
+        // init crashlytics only when a Firebase project is configured.
+        if (firebaseConfigured) {
+            Firebase.crashlytics.setCustomKeys {
+                key("affine_version", CapacitorConfig.getAffineVersion())
+            }
         }
     }
 
