@@ -70,13 +70,22 @@ jobs:
         shell: pwsh
         run: yarn affine @affine/native build
 
-      - name: Build desktop web core
+      - name: Generate desktop web assets
         shell: pwsh
         env:
           BUILD_TYPE: canary
           DISTRIBUTION: desktop
-          SKIP_WEB_BUILD: '1'
-        run: yarn affine @affine/electron build
+        run: |
+          yarn affine @affine/electron generate-assets
+          $webStatic = "packages/frontend/apps/electron/resources/web-static"
+          if (!(Test-Path "$webStatic/index.html")) {
+            throw "Desktop web assets were not generated: $webStatic/index.html is missing"
+          }
+          $assetCount = (Get-ChildItem -Path $webStatic -Recurse -File | Measure-Object).Count
+          if ($assetCount -lt 10) {
+            throw "Desktop web assets look incomplete: only $assetCount files found"
+          }
+          Write-Host "Verified $assetCount desktop web asset files"
 
       - name: Configure Yarn for Electron packaging
         shell: pwsh
