@@ -78,6 +78,14 @@ export class CustomObjectManager extends SignalWatcher(
   @property({ attribute: false })
   accessor legacyStorageKey = '';
 
+  /** Connects the manager to the active AFFiNE workspace after mounting. */
+  setWorkspaceContext(workspaceId: string, workspaceDoc: Y.Doc) {
+    this.workspaceId = workspaceId;
+    this.workspaceDoc = workspaceDoc;
+    this.load();
+    this.observeWorkspace();
+  }
+
   private observedMap?: Y.Map<string>;
   private readonly onWorkspaceDataChanged = () => this.loadFromWorkspace();
 
