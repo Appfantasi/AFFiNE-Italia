@@ -227,8 +227,8 @@ export class CustomObjectManager extends SignalWatcher(
     this.requestUpdate();
   };
 
-  /** Stop mobile/global navigation handlers from swallowing the create action. */
-  private onCreateTypeClick = (event: MouseEvent) => {
+  /** Handle creation through native form submission on desktop and Android WebView. */
+  private onCreateTypeSubmit = (event: SubmitEvent) => {
     event.preventDefault();
     event.stopPropagation();
     this.createType();
@@ -467,11 +467,11 @@ export class CustomObjectManager extends SignalWatcher(
                   @click=${() => { this.selectedTypeId$.value = type.id; this.selectedRecordId$.value = ''; this.typeNameEdit$.value = type.name; }}>
                   ${type.name} <span class="muted">(${data.records.filter(item => item.typeId === type.id).length})</span>
                 </button>`) : html`<p class="muted">Non hai ancora creato tipi.</p>`}
-              <div class="form">
-                <input placeholder="Nuovo tipo (es. Libro)" .value=${this.typeName$.value}
+              <form class="form" @submit=${this.onCreateTypeSubmit}>
+                <input aria-label="Nome del nuovo tipo" placeholder="Nuovo tipo (es. Libro)" .value=${this.typeName$.value}
                   @input=${(event: Event) => (this.typeName$.value = (event.currentTarget as HTMLInputElement).value)}>
-                <button class="primary" type="button" @click=${this.onCreateTypeClick}>Crea tipo</button>
-              </div>
+                <button class="primary" type="submit">Crea tipo</button>
+              </form>
               <div class="actions">
                 <button @click=${this.exportBackup}>Esporta backup</button>
                 <label><input type="file" accept="application/json,.json" @change=${this.importBackup} hidden>Importa backup</label>
