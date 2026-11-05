@@ -1,29 +1,50 @@
 import { cssVarV2 } from '@toeverything/theme/v2';
 import { style } from '@vanilla-extract/css';
+
 export const errorLayout = style({
-  position: 'absolute',
+  position: 'fixed',
+  inset: 0,
   display: 'flex',
   flexDirection: 'column',
-  justifyContent: 'center',
+  justifyContent: 'flex-start',
   alignItems: 'center',
-  height: '100%',
   width: '100%',
+  height: '100%',
+  minHeight: '100dvh',
+  boxSizing: 'border-box',
+  overflowY: 'auto',
+  overflowX: 'hidden',
+  paddingTop: 'max(12px, env(safe-area-inset-top))',
+  paddingRight: 'max(12px, env(safe-area-inset-right))',
+  paddingBottom: 'max(24px, env(safe-area-inset-bottom))',
+  paddingLeft: 'max(12px, env(safe-area-inset-left))',
   transition: 'all 0.3s ease-in-out',
+  WebkitOverflowScrolling: 'touch',
 });
+
 export const errorContainer = style({
   display: 'flex',
   flexDirection: 'column',
   justifyContent: 'center',
   alignItems: 'flex-start',
-  height: '100%',
+  minHeight: 'min-content',
   width: '100%',
   gap: '8px',
   padding: '16px',
+  margin: 'auto 0',
+  boxSizing: 'border-box',
   maxWidth: '400px',
+  flexShrink: 0,
   transition: 'max-width 0.3s ease-in-out',
   selectors: {
     '&[data-show-stack="true"]': {
       maxWidth: '600px',
+    },
+  },
+  '@media': {
+    '(max-width: 600px), (max-height: 600px)': {
+      padding: '8px',
+      gap: '6px',
     },
   },
 });
@@ -54,6 +75,12 @@ export const illustration = style({
   maxWidth: '100%',
   width: 300,
   alignSelf: 'center',
+  flexShrink: 0,
+  '@media': {
+    '(max-width: 600px), (max-height: 600px)': {
+      width: 160,
+    },
+  },
 });
 
 export const text = style({
@@ -66,17 +93,20 @@ export const text = style({
 
 export const actionContainer = style({
   display: 'flex',
-  marginTop: '16px',
+  flexWrap: 'wrap',
+  marginTop: '12px',
   width: '100%',
-  gap: '32px',
+  gap: '12px',
   justifyContent: 'center',
   alignItems: 'center',
+  flexShrink: 0,
 });
 
 export const actionButton = style({
-  padding: '4px 8px',
+  padding: '8px 12px',
   fontSize: 12,
   minWidth: '120px',
+  minHeight: '40px',
 });
 
 export const actionContent = style({
