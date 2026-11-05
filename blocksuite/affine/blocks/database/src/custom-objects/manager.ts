@@ -91,6 +91,7 @@ export class CustomObjectManager extends SignalWatcher(
   private readonly fieldName$ = signal('');
   private readonly fieldType$ = signal<CustomFieldType | 'relation'>('text');
   private readonly fieldOptions$ = signal('');
+  private readonly fieldRequired$ = signal(false);
   private readonly relationTargetId$ = signal('');
   private readonly relationCardinality$ = signal<'one' | 'many'>('one');
   private readonly typeNameEdit$ = signal('');
@@ -229,6 +230,7 @@ export class CustomObjectManager extends SignalWatcher(
       id: makeId('field'),
       name,
       type: this.fieldType$.value,
+      ...(this.fieldRequired$.value ? { required: true } : {}),
       ...(this.fieldType$.value === 'select' || this.fieldType$.value === 'multi-select'
         ? { options }
         : {}),
@@ -243,6 +245,7 @@ export class CustomObjectManager extends SignalWatcher(
     this.save({ ...this.data$.value, types: result });
     this.fieldName$.value = '';
     this.fieldOptions$.value = '';
+    this.fieldRequired$.value = false;
   };
 
   private renameType = () => {
@@ -471,6 +474,8 @@ export class CustomObjectManager extends SignalWatcher(
                       <option value="one">Un solo oggetto</option>
                       <option value="many">Più oggetti</option>
                     </select>` : nothing}
+                  <label class="muted"><input type="checkbox" .checked=${this.fieldRequired$.value}
+                    @change=${(event: Event) => (this.fieldRequired$.value = (event.currentTarget as HTMLInputElement).checked)}>Obbligatoria</label>
                   <button @click=${this.addField}>Aggiungi</button>
                 </div>
                 <h3>Oggetti di questo tipo</h3>
