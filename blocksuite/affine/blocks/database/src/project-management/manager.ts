@@ -169,6 +169,39 @@ export class ProjectManager extends SignalWatcher(WithDisposable(ShadowlessEleme
     else this.save(result.value);
   };
 
+  private exportBackup = () => {
+    const blob = new Blob([exportProjectWorkspace(this.data$.value)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'affine-italia-progetti-attivita.json';
+    anchor.click();
+    URL.revokeObjectURL(url);
+    this.status$.value = 'Backup di progetti e attività esportato.';
+  };
+
+  private importBackup = async (event: Event) => {
+    const input = event.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    const result = importProjectWorkspace(await file.text());
+    if (!result.ok) {
+      this.status$.value = result.error;
+    } else {
+      this.save(result.value);
+      const currentProjectExists = result.value.projects.some(
+        project => project.id === this.projectId$.value
+      );
+      if (!currentProjectExists) {
+        this.projectId$.value = result.value.projects[0]?.id ?? '';
+      }
+      this.status$.value = 'Backup importato e salvato nel workspace AFFiNE.';
+    }
+    input.value = '';
+  };
+
   private renderTask(task: ProjectWorkspaceData['tasks'][number]) {
     return html`<article class="task">
       <strong>${task.title}</strong>
@@ -197,6 +230,12 @@ export class ProjectManager extends SignalWatcher(WithDisposable(ShadowlessEleme
           <input placeholder="Nome nuovo progetto" .value=${this.projectName$.value}
             @input=${(event: Event) => (this.projectName$.value = (event.currentTarget as HTMLInputElement).value)}>
           <button class="primary" @click=${this.createProject}>Crea progetto</button>
+        </div>
+        <div class="toolbar" style="margin-top:8px">
+          <button @click=${this.exportBackup}>Esporta backup JSON</button>
+          <label class="muted">Importa backup JSON
+            <input type="file" accept="application/json,.json" @change=${this.importBackup}>
+          </label>
         </div>
         ${data.projects.length ? html`
           <div class="toolbar" style="margin-top:12px">
