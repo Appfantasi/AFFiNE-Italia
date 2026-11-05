@@ -21,6 +21,7 @@ import type {
   CustomFieldType,
   CustomObjectField,
   CustomObjectType,
+  CustomObjectValue,
 } from './model.js';
 
 const STORAGE_PREFIX = 'affine-italia-custom-objects-v1:';
