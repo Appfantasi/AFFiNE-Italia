@@ -202,6 +202,7 @@ export class CustomObjectManager extends SignalWatcher(
     const name = this.typeName$.value.trim();
     if (!name) {
       this.status$.value = 'Inserisci il nome del tipo.';
+      this.requestUpdate();
       return;
     }
     const now = Date.now();
@@ -215,11 +216,22 @@ export class CustomObjectManager extends SignalWatcher(
     const result = addCustomObjectType(this.data$.value, definition);
     if (!result.ok) {
       this.status$.value = result.error;
+      this.requestUpdate();
       return;
     }
     this.save(result.value);
     this.selectedTypeId$.value = definition.id;
+    this.selectedRecordId$.value = '';
     this.typeName$.value = '';
+    this.status$.value = `Tipo "${name}" creato correttamente.`;
+    this.requestUpdate();
+  };
+
+  /** Stop mobile/global navigation handlers from swallowing the create action. */
+  private onCreateTypeClick = (event: MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    this.createType();
   };
 
   private addField = () => {
@@ -458,7 +470,7 @@ export class CustomObjectManager extends SignalWatcher(
               <div class="form">
                 <input placeholder="Nuovo tipo (es. Libro)" .value=${this.typeName$.value}
                   @input=${(event: Event) => (this.typeName$.value = (event.currentTarget as HTMLInputElement).value)}>
-                <button class="primary" @click=${this.createType}>Crea tipo</button>
+                <button class="primary" type="button" @click=${this.onCreateTypeClick}>Crea tipo</button>
               </div>
               <div class="actions">
                 <button @click=${this.exportBackup}>Esporta backup</button>
