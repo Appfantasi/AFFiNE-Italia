@@ -9,6 +9,8 @@ on:
       - '.github/workflows/android-build.yml'
       - 'packages/**'
       - 'blocksuite/**'
+      - 'blocksuite/affine/blocks/database/src/custom-objects/**'
+      - 'packages/frontend/core/src/mobile/components/app-tabs/**'
       - 'tools/**'
       - 'mobile-native/**'
       - 'package.json'
