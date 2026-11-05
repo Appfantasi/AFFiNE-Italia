@@ -6,7 +6,6 @@ import {
   VirtualKeyboardProvider,
   type VirtualKeyboardProviderWithAction,
 } from '@blocksuite/affine-shared/services';
-import { IS_MOBILE } from '@blocksuite/global/env';
 import { WidgetComponent, WidgetViewExtension } from '@blocksuite/std';
 import { effect, signal } from '@preact/signals-core';
 import { html, nothing } from 'lit';
@@ -97,7 +96,6 @@ export class AffineKeyboardToolbarWidget extends WidgetComponent<RootBlockModel>
   override render() {
     if (
       this.store.readonly ||
-      !IS_MOBILE ||
       !this.store
         .get(FeatureFlagService)
         .getFlag('enable_mobile_keyboard_toolbar')
