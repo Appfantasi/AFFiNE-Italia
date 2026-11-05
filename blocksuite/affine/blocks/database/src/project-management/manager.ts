@@ -189,6 +189,8 @@ export class ProjectManager extends SignalWatcher(WithDisposable(ShadowlessEleme
     const result = importProjectWorkspace(await file.text());
     if (!result.ok) {
       this.status$.value = result.error;
+    } else if (!this.workspaceDoc) {
+      this.status$.value = 'Workspace non disponibile: backup non importato.';
     } else {
       this.save(result.value);
       const currentProjectExists = result.value.projects.some(
