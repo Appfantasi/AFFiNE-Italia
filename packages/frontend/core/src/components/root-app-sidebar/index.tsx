@@ -14,10 +14,11 @@ import { AuthService, ServerService } from '@affine/core/modules/cloud';
 import { WorkspaceDialogService } from '@affine/core/modules/dialogs';
 import { FeatureFlagService } from '@affine/core/modules/feature-flag';
 import { CMDKQuickSearchService } from '@affine/core/modules/quicksearch/services/cmdk';
-import type { Workspace } from '@affine/core/modules/workspace';
+import { WorkspaceService, type Workspace } from '@affine/core/modules/workspace';
 import { useI18n } from '@affine/i18n';
 import { track } from '@affine/track';
 import type { Store } from '@blocksuite/affine/store';
+import { CustomObjectManager } from '@blocksuite/affine-block-database';
 import {
   AiOutlineIcon,
   AllDocsIcon,
@@ -27,7 +28,7 @@ import {
 } from '@blocksuite/icons/rc';
 import { useLiveData, useService, useServices } from '@toeverything/infra';
 import type { ReactElement } from 'react';
-import { memo, useCallback } from 'react';
+import { createElement, memo, useCallback, useEffect, useRef } from 'react';
 
 import {
   CollapsibleSection,
@@ -86,6 +87,22 @@ const AllDocsButton = () => {
       </span>
     </MenuLinkItem>
   );
+};
+
+const CustomObjectsButton = () => {
+  const workspace = useService(WorkspaceService).workspace;
+  const managerRef = useRef<CustomObjectManager | null>(null);
+
+  useEffect(() => {
+    if (!customElements.get('affine-custom-object-manager')) {
+      customElements.define('affine-custom-object-manager', CustomObjectManager);
+    }
+    managerRef.current?.setWorkspaceContext(workspace.id, workspace.rootYDoc);
+  }, [workspace]);
+
+  return createElement('affine-custom-object-manager', {
+    ref: managerRef,
+  }) as ReactElement;
 };
 
 const AIChatButton = () => {
@@ -212,6 +229,7 @@ export const RootAppSidebar = memo((): ReactElement => {
           <AddPageButton />
         </div>
         <AllDocsButton />
+        <CustomObjectsButton />
         <AppSidebarJournalButton />
         {sessionStatus === 'authenticated' && <NotificationButton />}
         <AIChatButton />
