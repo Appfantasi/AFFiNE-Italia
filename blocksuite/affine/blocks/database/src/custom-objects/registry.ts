@@ -140,15 +140,37 @@ export function setCustomObjectValue(
     }
   }
 
-  const records = data.records.map(item =>
-    item.id === recordId
-      ? {
-          ...item,
-          values: { ...item.values, [fieldId]: value },
-          updatedAt: now,
-        }
-      : item
-  );
+  // Keep both sides of a relationship synchronized. The inverse field is
+  // always a collection, so one-to-one and one-to-many links remain safe.
+  const previousValue = record.values[fieldId] ?? null;
+  const previousIds = field.type === 'relation'
+    ? (Array.isArray(previousValue) ? previousValue : typeof previousValue === 'string' ? [previousValue] : [])
+    : [];
+  const nextIds = field.type === 'relation'
+    ? (Array.isArray(value) ? value : typeof value === 'string' ? [value] : [])
+    : [];
+  const inverseFieldId = field.type === 'relation' ? field.relation?.inverseFieldId : undefined;
+  const records = data.records.map(item => {
+    if (item.id === recordId) {
+      return {
+        ...item,
+        values: { ...item.values, [fieldId]: value },
+        updatedAt: now,
+      };
+    }
+    if (inverseFieldId && (previousIds.includes(item.id) || nextIds.includes(item.id))) {
+      const current = item.values[inverseFieldId];
+      const linked = Array.isArray(current) ? current : typeof current === 'string' ? [current] : [];
+      const next = linked.filter(id => id !== recordId);
+      if (nextIds.includes(item.id)) next.push(recordId);
+      return {
+        ...item,
+        values: { ...item.values, [inverseFieldId]: [...new Set(next)] },
+        updatedAt: now,
+      };
+    }
+    return item;
+  });
   return { ok: true, value: { ...data, records } };
 }
 
