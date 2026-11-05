@@ -239,48 +239,68 @@ export class CustomObjectManager extends SignalWatcher(
   };
 
   private addField = () => {
-    const type = this.data$.value.types.find(
-      item => item.id === this.selectedTypeId$.value
-    );
+    const type = this.data$.value.types.find(item => item.id === this.selectedTypeId$.value);
     const name = this.fieldName$.value.trim();
     if (!type || !name) {
       this.status$.value = 'Seleziona un tipo e inserisci il nome della proprietà.';
-      return;
-    }
-    if (this.fieldType$.value === 'relation' && !this.data$.value.types.some(item => item.id !== type.id)) {
-      this.status$.value = 'Crea prima un altro tipo di oggetto da collegare.';
+      this.requestUpdate();
       return;
     }
     const relationTarget = this.data$.value.types.find(item => item.id === this.relationTargetId$.value);
     const options = this.fieldOptions$.value.split(',').map(item => item.trim()).filter(Boolean);
     if ((this.fieldType$.value === 'select' || this.fieldType$.value === 'multi-select') && !options.length) {
       this.status$.value = 'Inserisci almeno un’opzione, separate da virgole.';
+      this.requestUpdate();
       return;
     }
-    if (this.fieldType$.value === 'relation' && !relationTarget) {
-      this.status$.value = 'Scegli il tipo di oggetto da collegare.';
+    if (this.fieldType$.value === 'relation' && (!relationTarget || relationTarget.id === type.id)) {
+      this.status$.value = 'Scegli un altro tipo di oggetto da collegare.';
+      this.requestUpdate();
       return;
     }
+
+    const fieldId = makeId('field');
+    const inverseFieldId = this.fieldType$.value === 'relation' ? makeId('field') : undefined;
     const field: CustomObjectField = {
-      id: makeId('field'),
+      id: fieldId,
       name,
       type: this.fieldType$.value,
       ...(this.fieldRequired$.value ? { required: true } : {}),
-      ...(this.fieldType$.value === 'select' || this.fieldType$.value === 'multi-select'
-        ? { options }
-        : {}),
-      ...(this.fieldType$.value === 'relation' && relationTarget
-        ? { relation: { targetTypeId: relationTarget.id, cardinality: this.relationCardinality$.value } }
-        : {}),
+      ...(this.fieldType$.value === 'select' || this.fieldType$.value === 'multi-select' ? { options } : {}),
+      ...(relationTarget && inverseFieldId ? {
+        relation: { targetTypeId: relationTarget.id, cardinality: this.relationCardinality$.value, inverseFieldId },
+      } : {}),
     };
-    const updated = { ...type, fields: [...type.fields, field], updatedAt: Date.now() };
-    const result = this.data$.value.types.map(item =>
-      item.id === type.id ? updated : item
-    );
-    this.save({ ...this.data$.value, types: result });
+
+    const types = this.data$.value.types.map(item => {
+      if (item.id === type.id) {
+        return { ...item, fields: [...item.fields, field], updatedAt: Date.now() };
+      }
+      if (relationTarget && inverseFieldId && item.id === relationTarget.id) {
+        let inverseName = `${type.name} collegati`;
+        let suffix = 2;
+        while (item.fields.some(existing => existing.name.toLocaleLowerCase() === inverseName.toLocaleLowerCase())) {
+          inverseName = `${type.name} collegati ${suffix++}`;
+        }
+        const inverse: CustomObjectField = {
+          id: inverseFieldId,
+          name: inverseName,
+          type: 'relation',
+          relation: { targetTypeId: type.id, cardinality: 'many', inverseFieldId: fieldId },
+        };
+        return { ...item, fields: [...item.fields, inverse], updatedAt: Date.now() };
+      }
+      return item;
+    });
+
+    this.save({ ...this.data$.value, types });
     this.fieldName$.value = '';
     this.fieldOptions$.value = '';
     this.fieldRequired$.value = false;
+    this.status$.value = relationTarget
+      ? `Proprietà aggiunta. Anche “${relationTarget.name}” ora mostra il collegamento inverso.`
+      : 'Proprietà aggiunta.';
+    this.requestUpdate();
   };
 
   private renameType = () => {
@@ -359,6 +379,16 @@ export class CustomObjectManager extends SignalWatcher(
     event.stopPropagation();
     this.createRecord();
   };
+
+  private openLinkedRecord(recordId: string) {
+    const record = this.data$.value.records.find(item => item.id === recordId);
+    if (!record) return;
+    this.selectedTypeId$.value = record.typeId;
+    this.selectedRecordId$.value = record.id;
+    this.typeNameEdit$.value = this.data$.value.types.find(item => item.id === record.typeId)?.name ?? '';
+    this.status$.value = `Scheda “${record.title}” aperta.`;
+    this.requestUpdate();
+  }
 
   private updateFieldValue(recordId: string, fieldId: string, value: CustomObjectValue) {
     const result = setCustomObjectValue(
@@ -469,20 +499,24 @@ export class CustomObjectManager extends SignalWatcher(
       const options = this.data$.value.records.filter(
         item => item.typeId === field.relation?.targetTypeId && item.id !== recordId
       );
-      if (field.relation?.cardinality === 'many') {
-        const selected = Array.isArray(value) ? value : [];
-        return html`<select multiple .value=${selected.join('|')} @change=${(event: Event) => {
-          const select = event.currentTarget as HTMLSelectElement;
-          this.updateFieldValue(recordId, field.id, Array.from(select.selectedOptions).map(option => option.value));
-        }}>
-          ${options.map(item => html`<option value=${item.id} ?selected=${selected.includes(item.id)}>${item.title}</option>`)}
-        </select>`;
-      }
-      return html`<select .value=${typeof value === 'string' ? value : ''}
-        @change=${(event: Event) => this.updateFieldValue(recordId, field.id, (event.currentTarget as HTMLSelectElement).value || null)}>
-        <option value="">Nessun collegamento</option>
-        ${options.map(item => html`<option value=${item.id}>${item.title}</option>`)}
-      </select>`;
+      const selectedIds = Array.isArray(value) ? value : typeof value === 'string' ? [value] : [];
+      const selectedRecords = this.data$.value.records.filter(item => selectedIds.includes(item.id));
+      return html`
+        <div class="section">
+          ${field.relation?.cardinality === 'many'
+            ? html`<select multiple size="3" @change=${(event: Event) => {
+                const select = event.currentTarget as HTMLSelectElement;
+                this.updateFieldValue(recordId, field.id, Array.from(select.selectedOptions).map(option => option.value));
+              }}>
+                ${options.map(item => html`<option value=${item.id} ?selected=${selectedIds.includes(item.id)}>${item.title}</option>`)}
+              </select>`
+            : html`<select .value=${typeof value === 'string' ? value : ''}
+                @change=${(event: Event) => this.updateFieldValue(recordId, field.id, (event.currentTarget as HTMLSelectElement).value || null)}>
+                <option value="">Nessun collegamento</option>
+                ${options.map(item => html`<option value=${item.id}>${item.title}</option>`)}
+              </select>`}
+          ${selectedRecords.map(item => html`<button type="button" class="record" @click=${() => this.openLinkedRecord(item.id)}>Apri scheda: ${item.title} ↗</button>`)}
+        </div>`;
     }
     const inputType = field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : field.type === 'url' ? 'url' : field.type === 'email' ? 'email' : 'text';
     return html`<input type=${inputType} .value=${value === null ? '' : String(value)}
