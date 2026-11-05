@@ -196,6 +196,7 @@ export class CustomObjectManager extends SignalWatcher(
     } catch {
       this.status$.value = 'Salvataggio non riuscito.';
     }
+    this.requestUpdate();
   }
 
   private createType = () => {
@@ -222,6 +223,7 @@ export class CustomObjectManager extends SignalWatcher(
     this.save(result.value);
     this.selectedTypeId$.value = definition.id;
     this.selectedRecordId$.value = '';
+    this.typeNameEdit$.value = name;
     this.typeName$.value = '';
     this.status$.value = `Tipo "${name}" creato correttamente.`;
     this.requestUpdate();
@@ -280,34 +282,80 @@ export class CustomObjectManager extends SignalWatcher(
   };
 
   private renameType = () => {
-    const type = this.data$.value.types.find(item => item.id === this.selectedTypeId$.value);
+    const type = this.data$.value.types.find(
+      item => item.id === this.selectedTypeId$.value
+    );
     const name = this.typeNameEdit$.value.trim();
-    if (!type || !name) return;
-    const result = updateCustomObjectType(this.data$.value, { ...type, name, updatedAt: Date.now() });
-    if (!result.ok) { this.status$.value = result.error; return; }
+    if (!type) {
+      this.status$.value = 'Seleziona il tipo da rinominare.';
+      this.requestUpdate();
+      return;
+    }
+    if (!name) {
+      this.status$.value = 'Inserisci il nuovo nome del tipo.';
+      this.requestUpdate();
+      return;
+    }
+    const result = updateCustomObjectType(this.data$.value, {
+      ...type,
+      name,
+      updatedAt: Date.now(),
+    });
+    if (!result.ok) {
+      this.status$.value = result.error;
+      this.requestUpdate();
+      return;
+    }
     this.save(result.value);
+    this.typeNameEdit$.value = name;
     this.status$.value = 'Nome del tipo aggiornato.';
+    this.requestUpdate();
+  };
+
+  private onRenameTypeClick = (event: Event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    this.renameType();
   };
 
   private createRecord = () => {
     const title = this.recordTitle$.value.trim();
-    if (!title || !this.selectedTypeId$.value) {
-      this.status$.value = 'Seleziona un tipo e inserisci il titolo dell’oggetto.';
+    const typeId = this.selectedTypeId$.value;
+    if (!typeId) {
+      this.status$.value = 'Seleziona prima un tipo di oggetto.';
+      this.requestUpdate();
       return;
     }
+    if (!title) {
+      this.status$.value = 'Inserisci il titolo del nuovo oggetto.';
+      this.requestUpdate();
+      return;
+    }
+
+    const recordId = makeId('object');
     const result = addCustomObjectRecord(
       this.data$.value,
-      this.selectedTypeId$.value,
-      makeId('object'),
+      typeId,
+      recordId,
       title
     );
     if (!result.ok) {
       this.status$.value = result.error;
+      this.requestUpdate();
       return;
     }
+
     this.save(result.value);
-    this.selectedRecordId$.value = result.value.records.at(-1)?.id ?? '';
+    this.selectedRecordId$.value = recordId;
     this.recordTitle$.value = '';
+    this.status$.value = 'Oggetto creato correttamente.';
+    this.requestUpdate();
+  };
+
+  private onCreateRecordClick = (event: Event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    this.createRecord();
   };
 
   private updateFieldValue(recordId: string, fieldId: string, value: CustomObjectValue) {
@@ -483,7 +531,7 @@ export class CustomObjectManager extends SignalWatcher(
                 <div class="form">
                   <input aria-label="Rinomina tipo" placeholder="Nome del tipo" .value=${this.typeNameEdit$.value || selectedType.name}
                     @input=${(event: Event) => (this.typeNameEdit$.value = (event.currentTarget as HTMLInputElement).value)}>
-                  <button @click=${this.renameType}>Rinomina</button>
+                  <button type="button" @click=${this.onRenameTypeClick}>Rinomina</button>
                 </div>
                 ${selectedType.fields.length ? selectedType.fields.map(field => html`
                   <div class="row"><span>${field.name}</span><span class="muted">${field.type}</span></div>`) : html`<p class="muted">Aggiungi la prima proprietà.</p>`}
@@ -518,7 +566,7 @@ export class CustomObjectManager extends SignalWatcher(
                 <div class="form">
                   <input placeholder="Titolo nuovo oggetto" .value=${this.recordTitle$.value}
                     @input=${(event: Event) => (this.recordTitle$.value = (event.currentTarget as HTMLInputElement).value)}>
-                  <button class="primary" @click=${this.createRecord}>Crea oggetto</button>
+                  <button type="button" class="primary" @click=${this.onCreateRecordClick}>Crea oggetto</button>
                 </div>
                 ${selectedRecord && selectedRecord.typeId === selectedType.id ? html`
                   <h3>Modifica oggetto</h3>
