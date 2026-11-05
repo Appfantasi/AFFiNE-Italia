@@ -297,9 +297,12 @@ export class CustomObjectManager extends SignalWatcher(
     this.fieldName$.value = '';
     this.fieldOptions$.value = '';
     this.fieldRequired$.value = false;
+    this.relationTargetId$.value = '';
+    const updatedType = types.find(item => item.id === type.id);
+    const propertyCount = updatedType?.fields.length ?? 0;
     this.status$.value = relationTarget
-      ? `Proprietà aggiunta. Anche “${relationTarget.name}” ora mostra il collegamento inverso.`
-      : 'Proprietà aggiunta.';
+      ? `Proprietà aggiunta. “${type.name}” ora ne ha ${propertyCount}; anche “${relationTarget.name}” mostra il collegamento inverso. Puoi aggiungerne altre.`
+      : `Proprietà aggiunta. “${type.name}” ora ne ha ${propertyCount}. Puoi aggiungerne altre.`;
     this.requestUpdate();
   };
 
@@ -563,7 +566,7 @@ export class CustomObjectManager extends SignalWatcher(
             </div>
             <div class="section">
               ${selectedType ? html`
-                <h3>Proprietà di: ${selectedType.name}</h3>
+                <h3>Proprietà di: ${selectedType.name} (${selectedType.fields.length})</h3>
                 <div class="form">
                   <input aria-label="Rinomina tipo" placeholder="Nome del tipo" .value=${this.typeNameEdit$.value || selectedType.name}
                     @input=${(event: Event) => (this.typeNameEdit$.value = (event.currentTarget as HTMLInputElement).value)}>
@@ -591,7 +594,7 @@ export class CustomObjectManager extends SignalWatcher(
                     </select>` : nothing}
                   <label class="muted"><input type="checkbox" .checked=${this.fieldRequired$.value}
                     @change=${(event: Event) => (this.fieldRequired$.value = (event.currentTarget as HTMLInputElement).checked)}>Obbligatoria</label>
-                  <button @click=${this.addField}>Aggiungi</button>
+                  <button type="button" class="primary" @click=${this.addField}>Aggiungi proprietà</button>
                 </div>
                 <h3>Oggetti di questo tipo</h3>
                 <div class="record-list">
