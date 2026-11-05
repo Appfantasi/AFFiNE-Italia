@@ -54,8 +54,9 @@ export class CustomObjectManager extends SignalWatcher(
     button:disabled { opacity: .45; cursor: not-allowed; }
     .trigger { white-space: nowrap; }
     .panel { position: absolute; z-index: 1000; top: calc(100% + 8px); right: 0; width: min( min(720px, calc(100vw - 32px)), 720px); max-height: min(75vh, 720px); overflow: auto; padding: 16px; border: 1px solid var(--affine-border-color); border-radius: 12px; background: var(--affine-background-overlay-panel-color, var(--affine-background-primary-color)); box-shadow: 0 12px 36px #0002; }
-    :host([hide-trigger]) { position: fixed; inset: 0; z-index: 2000; pointer-events: none; }
-    :host([hide-trigger]) .panel { pointer-events: auto; }
+    :host([hide-trigger]) { position: fixed; inset: 0; z-index: 2000; display: block; pointer-events: none; }
+    :host([hide-trigger]) .panel { position: fixed; top: max(12px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right)); bottom: max(12px, env(safe-area-inset-bottom)); left: max(12px, env(safe-area-inset-left)); width: auto; max-height: none; box-sizing: border-box; overflow: auto; pointer-events: auto; }
+    :host([hide-trigger]) .columns { grid-template-columns: minmax(0, 1fr); }
     .header, .row, .actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
     .columns { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(240px, 1.5fr); gap: 16px; margin-top: 14px; }
     .section { display: flex; flex-direction: column; gap: 9px; min-width: 0; }
@@ -87,6 +88,7 @@ export class CustomObjectManager extends SignalWatcher(
   /** Opens the manager from an external mobile navigation control. */
   openPanel() {
     this.open$.value = true;
+    this.requestUpdate();
   }
 
   /** Connects the manager to the active AFFiNE workspace after mounting. */
