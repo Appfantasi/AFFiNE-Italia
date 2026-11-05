@@ -427,8 +427,8 @@ export class CustomObjectManager extends SignalWatcher(
     const records = data.records.filter(record => record.typeId === selectedType?.id);
 
     return html`
-      <button class="trigger" @click=${() => (this.open$.value = !this.open$.value)}>
-        Oggetti (${data.types.length})
+      <button class="trigger" aria-label="Apri gestione oggetti personalizzati" @click=${() => (this.open$.value = !this.open$.value)}>
+        Oggetti personalizzati (${data.types.length})
       </button>
       ${this.open$.value ? html`
         <section class="panel" aria-label="Gestione oggetti personalizzati">
@@ -508,7 +508,8 @@ export class CustomObjectManager extends SignalWatcher(
                   ${selectedType.fields.map(field => html`
                     <div class="field"><label>${field.name}</label>${this.renderFieldEditor(field, selectedRecord.id)}</div>`)}
                 ` : nothing}
-                <div class="actions"><button @click=${this.deleteSelectedType}>Elimina tipo</button></div>
+                <div class="actions"><button @click=${this.deleteSelectedType}>Elimina tipo di oggetto</button></div>
+                <p class="muted">Per eliminare un tipo, elimina prima gli oggetti che contiene e rimuovi le relazioni che lo utilizzano.</p>
               ` : html`<p class="muted">Crea o seleziona un tipo per gestire proprietà e oggetti.</p>`}
             </div>
           </div>
