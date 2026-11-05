@@ -54,6 +54,8 @@ export class CustomObjectManager extends SignalWatcher(
     button:disabled { opacity: .45; cursor: not-allowed; }
     .trigger { white-space: nowrap; }
     .panel { position: absolute; z-index: 1000; top: calc(100% + 8px); right: 0; width: min( min(720px, calc(100vw - 32px)), 720px); max-height: min(75vh, 720px); overflow: auto; padding: 16px; border: 1px solid var(--affine-border-color); border-radius: 12px; background: var(--affine-background-overlay-panel-color, var(--affine-background-primary-color)); box-shadow: 0 12px 36px #0002; }
+    :host([hide-trigger]) { position: fixed; inset: 0; z-index: 2000; pointer-events: none; }
+    :host([hide-trigger]) .panel { pointer-events: auto; }
     .header, .row, .actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
     .columns { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(240px, 1.5fr); gap: 16px; margin-top: 14px; }
     .section { display: flex; flex-direction: column; gap: 9px; min-width: 0; }
@@ -70,6 +72,9 @@ export class CustomObjectManager extends SignalWatcher(
     @media (max-width: 560px) { .panel { position: fixed; top: 12px; left: 12px; right: 12px; width: auto; max-height: calc(100vh - 24px); } .columns { grid-template-columns: 1fr; } }
   `;
 
+  @property({ type: Boolean, reflect: true })
+  accessor hideTrigger = false;
+
   @property({ attribute: false })
   accessor workspaceId = 'default';
 
@@ -78,6 +83,11 @@ export class CustomObjectManager extends SignalWatcher(
 
   @property({ attribute: false })
   accessor legacyStorageKey = '';
+
+  /** Opens the manager from an external mobile navigation control. */
+  openPanel() {
+    this.open$.value = true;
+  }
 
   /** Connects the manager to the active AFFiNE workspace after mounting. */
   setWorkspaceContext(workspaceId: string, workspaceDoc: Y.Doc) {
@@ -427,9 +437,9 @@ export class CustomObjectManager extends SignalWatcher(
     const records = data.records.filter(record => record.typeId === selectedType?.id);
 
     return html`
-      <button class="trigger" aria-label="Apri gestione oggetti personalizzati" @click=${() => (this.open$.value = !this.open$.value)}>
+      ${this.hideTrigger ? nothing : html`<button class="trigger" aria-label="Apri gestione oggetti personalizzati" @click=${() => (this.open$.value = !this.open$.value)}>
         Oggetti personalizzati (${data.types.length})
-      </button>
+      </button>`}
       ${this.open$.value ? html`
         <section class="panel" aria-label="Gestione oggetti personalizzati">
           <div class="header">
