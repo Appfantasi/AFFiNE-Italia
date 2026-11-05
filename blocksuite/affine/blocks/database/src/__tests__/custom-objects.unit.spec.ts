@@ -1,6 +1,12 @@
 import { describe, expect, test } from 'vitest';
 
 import {
+  addCustomObjectRecord,
+  createEmptyCustomObjectWorkspace,
+  setCustomObjectValue,
+} from '../custom-objects/registry.js';
+
+import {
   createCustomObjectRecord,
   isCustomObjectValueValid,
   validateCustomObjectType,
@@ -49,4 +55,49 @@ describe('custom object model', () => {
     expect(isCustomObjectValueValid(bookType.fields[1], ['Non previsto'])).toBe(false);
     expect(isCustomObjectValueValid(bookType.fields[2], true)).toBe(true);
   });
+  test('keeps inverse relations synchronized when links are added and removed', () => {
+    const book: CustomObjectType = {
+      id: 'book',
+      name: 'Libro',
+      fields: [{
+        id: 'author-link',
+        name: 'Autore',
+        type: 'relation',
+        relation: { targetTypeId: 'author', cardinality: 'one', inverseFieldId: 'books-link' },
+      }],
+      createdAt: 1,
+      updatedAt: 1,
+    };
+    const author: CustomObjectType = {
+      id: 'author',
+      name: 'Autore',
+      fields: [{
+        id: 'books-link',
+        name: 'Libri collegati',
+        type: 'relation',
+        relation: { targetTypeId: 'book', cardinality: 'many', inverseFieldId: 'author-link' },
+      }],
+      createdAt: 1,
+      updatedAt: 1,
+    };
+    let data = createEmptyCustomObjectWorkspace();
+    data = { ...data, types: [book, author] };
+    const bookResult = addCustomObjectRecord(data, 'book', 'book-1', 'I promessi sposi');
+    expect(bookResult.ok).toBe(true);
+    if (!bookResult.ok) return;
+    const authorResult = addCustomObjectRecord(bookResult.value, 'author', 'author-1', 'Alessandro Manzoni');
+    expect(authorResult.ok).toBe(true);
+    if (!authorResult.ok) return;
+
+    const linked = setCustomObjectValue(authorResult.value, 'book-1', 'author-link', 'author-1');
+    expect(linked.ok).toBe(true);
+    if (!linked.ok) return;
+    expect(linked.value.records.find(item => item.id === 'author-1')?.values['books-link']).toEqual(['book-1']);
+
+    const unlinked = setCustomObjectValue(linked.value, 'book-1', 'author-link', null);
+    expect(unlinked.ok).toBe(true);
+    if (!unlinked.ok) return;
+    expect(unlinked.value.records.find(item => item.id === 'author-1')?.values['books-link']).toEqual([]);
+  });
+
 });
