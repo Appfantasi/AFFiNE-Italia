@@ -16,6 +16,7 @@ export * from '@blocksuite/data-view';
 export * from './custom-objects/model.js';
 
 export * from './custom-objects/registry.js';
+export * from './custom-objects/manager.js';
 
 export * from './project-management/model.js';
 export * from './project-management/registry.js';
