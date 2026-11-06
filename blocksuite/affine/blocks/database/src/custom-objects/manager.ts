@@ -542,13 +542,13 @@ export class CustomObjectManager extends SignalWatcher(
       ${this.open$.value ? html`
         <section class="panel" aria-label="Gestione oggetti personalizzati">
           <div class="header">
-            <div><strong>Oggetti personalizzati</strong><p>Tipi, proprietà e collegamenti</p></div>
+            <div><strong>Gestione oggetti personalizzati</strong><p>1. Crea un tipo, ad esempio “Libro”. 2. Selezionalo e aggiungi le proprietà. 3. Crea gli oggetti di quel tipo.</p></div>
             <button @click=${() => (this.open$.value = false)} aria-label="Chiudi">✕</button>
           </div>
           <div class="notice">I dati sono conservati nel documento condiviso del workspace AFFiNE. Se il workspace non è disponibile, viene usato il salvataggio locale.</div>
           <div class="columns">
             <div class="section">
-              <h3>Tipi di oggetto</h3>
+              <h3>1. Tipi di oggetto</h3>
               ${data.types.length ? data.types.map(type => html`
                 <button class="type" aria-pressed=${type.id === this.selectedTypeId$.value}
                   @click=${() => { this.selectedTypeId$.value = type.id; this.selectedRecordId$.value = ''; this.typeNameEdit$.value = type.name; }}>
@@ -566,7 +566,7 @@ export class CustomObjectManager extends SignalWatcher(
             </div>
             <div class="section">
               ${selectedType ? html`
-                <h3>Proprietà di: ${selectedType.name} (${selectedType.fields.length})</h3>
+                <h3>2. Proprietà di: ${selectedType.name} (${selectedType.fields.length})</h3>
                 <div class="form">
                   <input aria-label="Rinomina tipo" placeholder="Nome del tipo" .value=${this.typeNameEdit$.value || selectedType.name}
                     @input=${(event: Event) => (this.typeNameEdit$.value = (event.currentTarget as HTMLInputElement).value)}>
@@ -596,16 +596,16 @@ export class CustomObjectManager extends SignalWatcher(
                     @change=${(event: Event) => (this.fieldRequired$.value = (event.currentTarget as HTMLInputElement).checked)}>Obbligatoria</label>
                   <button type="button" class="primary" @click=${this.addField}>Aggiungi proprietà</button>
                 </div>
-                <h3>Oggetti di questo tipo</h3>
+                <h3>3. Oggetti di tipo ${selectedType.name}</h3>
                 <div class="record-list">
                   ${records.map(record => html`
                     <button class="record" aria-pressed=${record.id === this.selectedRecordId$.value}
                       @click=${() => (this.selectedRecordId$.value = record.id)}>${record.title}</button>`)}
                 </div>
                 <div class="form">
-                  <input placeholder="Titolo nuovo oggetto" .value=${this.recordTitle$.value}
+                  <input aria-label="Titolo del nuovo oggetto" placeholder="Es. Il nome del libro" .value=${this.recordTitle$.value}
                     @input=${(event: Event) => (this.recordTitle$.value = (event.currentTarget as HTMLInputElement).value)}>
-                  <button type="button" class="primary" @click=${this.onCreateRecordClick}>Crea oggetto</button>
+                  <button type="button" class="primary" @click=${this.onCreateRecordClick}>Crea nuovo oggetto</button>
                 </div>
                 ${selectedRecord && selectedRecord.typeId === selectedType.id ? html`
                   <h3>Modifica oggetto</h3>
@@ -619,7 +619,7 @@ export class CustomObjectManager extends SignalWatcher(
                 ` : nothing}
                 <div class="actions"><button @click=${this.deleteSelectedType}>Elimina tipo di oggetto</button></div>
                 <p class="muted">Per eliminare un tipo, elimina prima gli oggetti che contiene e rimuovi le relazioni che lo utilizzano.</p>
-              ` : html`<p class="muted">Crea o seleziona un tipo per gestire proprietà e oggetti.</p>`}
+              ` : html`<p class="muted">Per iniziare, scrivi un nome nella sezione “1. Tipi di oggetto” e premi “Crea tipo”. Poi seleziona il tipo creato, aggiungi le proprietà (ad esempio autore, anno, stato) e infine crea un nuovo oggetto nella sezione 3.</p>`}
             </div>
           </div>
           ${this.status$.value ? html`<p role="status">${this.status$.value}</p>` : nothing}
