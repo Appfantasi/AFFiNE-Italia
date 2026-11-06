@@ -100,9 +100,21 @@ const CustomObjectsButton = () => {
     managerRef.current?.setWorkspaceContext(workspace.id, workspace.rootYDoc);
   }, [workspace]);
 
-  return createElement('affine-custom-object-manager', {
-    ref: managerRef,
-  }) as ReactElement;
+  return (
+    <>
+      <MenuItem
+        icon={<AllDocsIcon />}
+        data-testid="sidebar-custom-objects-button"
+        onClick={() => managerRef.current?.openPanel()}
+      >
+        <span>Oggetti personalizzati</span>
+      </MenuItem>
+      {createElement('affine-custom-object-manager', {
+        ref: managerRef,
+        'hide-trigger': '',
+      })}
+    </>
+  );
 };
 
 const AIChatButton = () => {
