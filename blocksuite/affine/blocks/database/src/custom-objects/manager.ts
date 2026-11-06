@@ -377,7 +377,8 @@ export class CustomObjectManager extends SignalWatcher(
     this.requestUpdate();
   };
 
-  private onCreateRecordClick = (event: Event) => {
+  /** Create records through native form submission on desktop and Android. */
+  private onCreateRecordSubmit = (event: SubmitEvent) => {
     event.preventDefault();
     event.stopPropagation();
     this.createRecord();
@@ -602,11 +603,11 @@ export class CustomObjectManager extends SignalWatcher(
                     <button class="record" aria-pressed=${record.id === this.selectedRecordId$.value}
                       @click=${() => (this.selectedRecordId$.value = record.id)}>${record.title}</button>`)}
                 </div>
-                <div class="form">
+                <form class="form" @submit=${this.onCreateRecordSubmit}>
                   <input aria-label="Titolo del nuovo oggetto" placeholder="Es. Il nome del libro" .value=${this.recordTitle$.value}
                     @input=${(event: Event) => (this.recordTitle$.value = (event.currentTarget as HTMLInputElement).value)}>
-                  <button type="button" class="primary" @click=${this.onCreateRecordClick}>Crea nuovo oggetto</button>
-                </div>
+                  <button type="submit" class="primary">Crea nuovo oggetto</button>
+                </form>
                 ${selectedRecord && selectedRecord.typeId === selectedType.id ? html`
                   <h3>Modifica oggetto</h3>
                   <div class="form">
