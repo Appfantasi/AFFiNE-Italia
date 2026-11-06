@@ -558,7 +558,7 @@ export class CustomObjectManager extends SignalWatcher(
               <form class="form" @submit=${this.onCreateTypeSubmit}>
                 <input aria-label="Nome del nuovo tipo" placeholder="Nuovo tipo (es. Libro)" .value=${this.typeName$.value}
                   @input=${(event: Event) => (this.typeName$.value = (event.currentTarget as HTMLInputElement).value)}>
-                <button class="primary" type="submit">Crea tipo</button>
+                <button class="primary" type="button" @click=${this.createType}>Crea tipo</button>
               </form>
               <div class="actions">
                 <button @click=${this.exportBackup}>Esporta backup</button>
@@ -606,7 +606,7 @@ export class CustomObjectManager extends SignalWatcher(
                 <form class="form" @submit=${this.onCreateRecordSubmit}>
                   <input aria-label="Titolo del nuovo oggetto" placeholder="Es. Il nome del libro" .value=${this.recordTitle$.value}
                     @input=${(event: Event) => (this.recordTitle$.value = (event.currentTarget as HTMLInputElement).value)}>
-                  <button type="submit" class="primary">Crea nuovo oggetto</button>
+                  <button type="button" class="primary" @click=${this.createRecord}>Crea nuovo oggetto</button>
                 </form>
                 ${selectedRecord && selectedRecord.typeId === selectedType.id ? html`
                   <h3>Modifica oggetto</h3>
