@@ -10,17 +10,19 @@ import type { AppTabCustomFCProps } from './type';
 
 export const AppTabCustomObjects = ({ tab }: AppTabCustomFCProps) => {
   const workspace = useService(WorkspaceService).workspace;
-  const [manager, setManager] = useState<CustomObjectManager | null>(null);
+  const [managerElement, setManagerElement] =
+    useState<CustomObjectManager | null>(null);
 
   useEffect(() => {
     if (!customElements.get('affine-custom-object-manager')) {
       customElements.define('affine-custom-object-manager', CustomObjectManager);
     }
-    manager?.setWorkspaceContext(workspace.id, workspace.rootYDoc);
-  }, [manager, workspace]);
 
-  const manager = createElement('affine-custom-object-manager', {
-    ref: setManager,
+    managerElement?.setWorkspaceContext(workspace.id, workspace.rootYDoc);
+  }, [managerElement, workspace]);
+
+  const managerNode = createElement('affine-custom-object-manager', {
+    ref: setManagerElement,
     'hide-trigger': '',
   });
 
@@ -29,11 +31,11 @@ export const AppTabCustomObjects = ({ tab }: AppTabCustomFCProps) => {
       <TabItem
         id={tab.key}
         label="Oggetti"
-        onClick={() => manager?.openPanel()}
+        onClick={() => managerElement?.openPanel()}
       >
         <AllDocsIcon />
       </TabItem>
-      {createPortal(manager, document.body)}
+      {createPortal(managerNode, document.body)}
     </>
   );
 };
