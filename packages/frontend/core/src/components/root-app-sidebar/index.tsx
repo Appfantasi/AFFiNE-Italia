@@ -28,7 +28,7 @@ import {
 } from '@blocksuite/icons/rc';
 import { useLiveData, useService, useServices } from '@toeverything/infra';
 import type { ReactElement } from 'react';
-import { createElement, memo, useCallback, useEffect, useRef } from 'react';
+import { createElement, memo, useCallback, useEffect, useState } from 'react';
 
 import {
   CollapsibleSection,
@@ -91,26 +91,26 @@ const AllDocsButton = () => {
 
 const CustomObjectsButton = () => {
   const workspace = useService(WorkspaceService).workspace;
-  const managerRef = useRef<CustomObjectManager | null>(null);
+  const [manager, setManager] = useState<CustomObjectManager | null>(null);
 
   useEffect(() => {
     if (!customElements.get('affine-custom-object-manager')) {
       customElements.define('affine-custom-object-manager', CustomObjectManager);
     }
-    managerRef.current?.setWorkspaceContext(workspace.id, workspace.rootYDoc);
-  }, [workspace]);
+    manager?.setWorkspaceContext(workspace.id, workspace.rootYDoc);
+  }, [manager, workspace]);
 
   return (
     <>
       <MenuItem
         icon={<AllDocsIcon />}
         data-testid="sidebar-custom-objects-button"
-        onClick={() => managerRef.current?.openPanel()}
+        onClick={() => manager?.openPanel()}
       >
         <span>Oggetti personalizzati</span>
       </MenuItem>
       {createElement('affine-custom-object-manager', {
-        ref: managerRef,
+        ref: setManager,
         'hide-trigger': '',
       })}
     </>
