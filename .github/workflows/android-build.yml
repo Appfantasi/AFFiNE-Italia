@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - affine-italia/windows-build
+      - feature/relational-workspace-core
     paths:
       - '.github/workflows/android-build.yml'
       - 'packages/**'
