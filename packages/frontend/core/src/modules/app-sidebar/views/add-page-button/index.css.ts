@@ -5,6 +5,8 @@ import { style } from '@vanilla-extract/css';
 export const root = style({
   width: 30,
   height: 30,
+  minWidth: 30,
+  flexShrink: 0,
   borderRadius: 8,
   boxShadow: cssVar('buttonShadow'),
   borderWidth: 0,
